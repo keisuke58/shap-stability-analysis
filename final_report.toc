@@ -1,0 +1,29 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {1}Introduction}{3}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Research Question and Motivation}{3}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Related Concepts}{3}{subsection.1.2}%
+\contentsline {section}{\numberline {2}Methodology}{4}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Dataset}{4}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Models}{4}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Explanation Method}{4}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Evaluation Metrics}{4}{subsection.2.4}%
+\contentsline {subsubsection}{\numberline {2.4.1}Feature Ranking Correlation}{4}{subsubsection.2.4.1}%
+\contentsline {subsubsection}{\numberline {2.4.2}SHAP Value Variance}{5}{subsubsection.2.4.2}%
+\contentsline {subsubsection}{\numberline {2.4.3}Explanation Consistency}{5}{subsubsection.2.4.3}%
+\contentsline {section}{\numberline {3}Results}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Model Stability Comparison}{5}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Key Findings}{5}{subsection.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.1}Ranking Correlation}{5}{subsubsection.3.2.1}%
+\contentsline {subsubsection}{\numberline {3.2.2}SHAP Value Variance}{5}{subsubsection.3.2.2}%
+\contentsline {subsubsection}{\numberline {3.2.3}Explanation Consistency}{6}{subsubsection.3.2.3}%
+\contentsline {subsection}{\numberline {3.3}Visual Analysis}{6}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Model-Specific Analysis}{6}{subsection.3.4}%
+\contentsline {subsubsection}{\numberline {3.4.1}XGBoost}{6}{subsubsection.3.4.1}%
+\contentsline {subsubsection}{\numberline {3.4.2}Random Forest}{7}{subsubsection.3.4.2}%
+\contentsline {subsubsection}{\numberline {3.4.3}Logistic Regression}{8}{subsubsection.3.4.3}%
+\contentsline {section}{\numberline {4}Discussion}{9}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Interpretation of Results}{9}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Limitations}{9}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Practical Recommendations}{10}{subsection.4.3}%
+\contentsline {section}{\numberline {5}Conclusion}{10}{section.5}%
+\contentsline {section}{\numberline {6}Reproducibility}{10}{section.6}%

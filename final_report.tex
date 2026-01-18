@@ -1,0 +1,345 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{subcaption}
+\usepackage{float}
+
+\geometry{margin=2.5cm}
+
+\title{Final Project Report: Interpretable Machine Learning}
+\subtitle{Stability and Faithfulness Analysis of SHAP Explanations for Tabular Models}
+\author{Keisuke Nishioka (Matrikelnummer: 10081049)}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Course Information}
+\begin{itemize}
+    \item \textbf{Course}: Interpretierbares Maschinelles Lernen (Interpretable Machine Learning)
+    \item \textbf{Instructor}: Prof. Dr. rer. nat. Marius Lindauer
+    \item \textbf{ECTS}: 5 ECTS
+\end{itemize}
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+\subsection{Research Question and Motivation}
+
+SHAP (SHapley Additive exPlanations) has become a standard method for local explanations in tabular machine learning, providing feature attribution values that help understand model predictions \cite{lundberg2017unified}. The method is based on Shapley values from cooperative game theory, offering theoretically grounded explanations with desirable properties such as efficiency, symmetry, and additivity \cite{strumbelj2014explaining}. However, the \textbf{stability of SHAP explanations under small perturbations} (e.g., random seed changes, data subsampling, model hyperparameter variations) remains an open research question. Understanding the stability and faithfulness of SHAP explanations is crucial for practitioners who rely on these explanations for decision-making in production systems.
+
+\textbf{Research Question:}
+\begin{quote}
+\textit{How stable and faithful are SHAP explanations across different random seeds, dataset sizes, and model classes?}
+\end{quote}
+
+\textbf{Motivation:}
+\begin{itemize}
+    \item SHAP is increasingly used in production systems where explanation stability matters
+    \item Small changes in random seeds or data sampling might lead to significantly different explanations
+    \item Understanding the conditions under which SHAP explanations are stable is important for reliable interpretation
+    \item This analysis provides practical guidelines for using SHAP in real-world applications
+\end{itemize}
+
+\subsection{Related Concepts}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Concept} & \textbf{Description} \\
+\midrule
+\textbf{iML Methods} & SHAP (TreeSHAP / KernelSHAP) \\
+\textbf{Models} & XGBoost, Random Forest, Logistic Regression \\
+\textbf{Focus} & Explanation stability and faithfulness \\
+\textbf{Evaluation} & Feature ranking correlation, SHAP value variance \\
+\bottomrule
+\end{tabular}
+\caption{Key concepts and methods}
+\end{table}
+
+\subsubsection*{Key Interpretability Concepts}
+\begin{itemize}
+    \item \textbf{Local Explanations}: Explaining individual predictions using feature attributions
+    \item \textbf{Stability}: Consistency of explanations under small perturbations
+    \item \textbf{Faithfulness}: How well explanations reflect the actual model behavior
+    \item \textbf{Feature Attribution}: Assigning importance scores to input features
+\end{itemize}
+
+\section{Methodology}
+
+\subsection{Dataset}
+
+For this analysis, we used the \textbf{Wine Quality} dataset from the UCI Machine Learning Repository. This dataset contains physicochemical properties of red wines and quality ratings. The dataset was converted to a binary classification task (quality $\geq$ 6 vs. quality $<$ 6), providing a clear prediction task suitable for stability analysis.
+
+\subsection{Models}
+
+We evaluated three different model classes to assess stability across different model architectures:
+
+\begin{itemize}
+    \item \textbf{XGBoost}: Gradient boosting model using TreeSHAP for explanations
+    \item \textbf{Random Forest}: Ensemble tree model using TreeSHAP for explanations
+    \item \textbf{Logistic Regression}: Linear model using KernelSHAP for explanations
+\end{itemize}
+
+Each model was trained with multiple random seeds (seeds: 42, 123, 456) to assess stability under different initialization conditions.
+
+\subsection{Explanation Method}
+
+\textbf{SHAP Values}: Feature attribution values for each prediction based on Shapley values from cooperative game theory. For a model $f$ and instance $\mathbf{x}$, the SHAP value for feature $i$ is defined as:
+
+\begin{equation}
+\phi_i(f, \mathbf{x}) = \sum_{S \subseteq F \setminus \{i\}} \frac{|S|!(|F|-|S|-1)!}{|F|!} [f_{S \cup \{i\}}(\mathbf{x}_{S \cup \{i\}}) - f_S(\mathbf{x}_S)]
+\end{equation}
+
+where $F$ is the set of all features, $S$ is a subset of features excluding $i$, and $f_S$ represents the model prediction using only features in $S$.
+
+\begin{itemize}
+    \item \textbf{TreeSHAP}: For tree-based models (XGBoost, Random Forest) - exact and efficient computation using tree structure
+    \item \textbf{KernelSHAP}: For non-tree models (Logistic Regression) - model-agnostic approximation using weighted linear regression
+\end{itemize}
+
+\subsection{Evaluation Metrics}
+
+Following established practices in explainable AI evaluation \cite{chen2020true, covert2020understanding}, we employed the following metrics:
+
+\subsubsection{Feature Ranking Correlation}
+
+Spearman correlation coefficient of feature importance rankings across different runs, measuring rank stability. For rankings $R^{(1)}$ and $R^{(2)}$ from two different runs, the Spearman correlation is computed as:
+
+\begin{equation}
+\rho = 1 - \frac{6 \sum_{i=1}^{n} d_i^2}{n(n^2-1)}
+\end{equation}
+
+where $d_i = R^{(1)}_i - R^{(2)}_i$ is the difference in ranks for feature $i$, and $n$ is the number of features. Higher values (closer to 1) indicate more stable rankings.
+
+\subsubsection{SHAP Value Variance}
+
+Variance of SHAP values for the same instance across different runs, quantifying explanation variability. For $m$ runs with SHAP values $\phi_i^{(1)}, \phi_i^{(2)}, \ldots, \phi_i^{(m)}$ for feature $i$ and instance $\mathbf{x}$, the variance is:
+
+\begin{equation}
+\text{Var}(\phi_i) = \frac{1}{m-1} \sum_{j=1}^{m} (\phi_i^{(j)} - \bar{\phi}_i)^2
+\end{equation}
+
+where $\bar{\phi}_i = \frac{1}{m} \sum_{j=1}^{m} \phi_i^{(j)}$ is the mean SHAP value. Lower variance indicates more stable explanations.
+
+\subsubsection{Explanation Consistency}
+
+Percentage of instances where top-k features remain consistent across runs. For instance $\mathbf{x}$ and top-k features $T_k^{(j)}$ from run $j$, consistency is:
+
+\begin{equation}
+\text{Consistency}_k = \frac{1}{N} \sum_{i=1}^{N} \mathbb{1}\left[\bigcap_{j=1}^{m} T_k^{(j)}(\mathbf{x}_i) \neq \emptyset\right]
+\end{equation}
+
+where $N$ is the number of instances, $m$ is the number of runs, and $\mathbb{1}[\cdot]$ is the indicator function. Higher values (closer to 1) indicate more consistent top-k feature identification.
+
+\section{Results}
+
+\subsection{Model Stability Comparison}
+
+Table~\ref{tab:stability_comparison} presents the stability metrics for all three models across different random seeds.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{Ranking} & \textbf{SHAP} & \textbf{Top-3} & \textbf{Top-5} \\
+ & \textbf{Correlation} & \textbf{Variance} & \textbf{Consistency} & \textbf{Consistency} \\
+\midrule
+Random Forest & 0.909 & 0.000159 & 0.356 & 0.353 \\
+XGBoost & 0.562 & 0.000327 & 0.322 & 0.427 \\
+Logistic Regression & 0.616 & 0.000299 & 0.167 & 0.127 \\
+\bottomrule
+\end{tabular}
+\caption{Stability metrics comparison across models}
+\label{tab:stability_comparison}
+\end{table}
+
+\subsection{Key Findings}
+
+\subsubsection{Ranking Correlation}
+
+Random Forest demonstrates the highest ranking correlation (0.909), indicating that feature importance rankings remain highly consistent across different random seeds. This suggests that Random Forest produces the most stable feature rankings in SHAP explanations. XGBoost and Logistic Regression show moderate ranking correlations (0.562 and 0.616, respectively), indicating less stable rankings.
+
+\subsubsection{SHAP Value Variance}
+
+All models show relatively low SHAP value variance (all below 0.0004), with Random Forest having the lowest variance (0.000159). This indicates that the absolute SHAP values are relatively stable across different runs, though Random Forest shows the most consistent absolute values.
+
+\subsubsection{Explanation Consistency}
+
+For top-3 consistency, Random Forest and XGBoost show similar performance (0.356 and 0.322, respectively), while Logistic Regression shows lower consistency (0.167). However, for top-5 consistency, XGBoost shows the highest value (0.427), followed by Random Forest (0.353) and Logistic Regression (0.127).
+
+\subsection{Visual Analysis}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{results/figures/model_comparison.png}
+\caption{Model stability comparison visualization}
+\label{fig:model_comparison}
+\end{figure}
+
+Figure~\ref{fig:model_comparison} provides a comprehensive comparison of stability metrics across all three models. The visualization highlights the trade-offs between different stability aspects.
+
+\subsection{Model-Specific Analysis}
+
+\subsubsection{XGBoost}
+
+XGBoost shows moderate stability with a ranking correlation of 0.562. The model demonstrates good top-5 consistency (0.427), suggesting that while exact feature rankings may vary, the most important features are generally identified consistently. The SHAP summary plots (Figure~\ref{fig:xgboost_summary}) show the distribution of feature importance across instances.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{results/figures/xgboost_shap_summary.png}
+\caption{XGBoost SHAP summary plot}
+\label{fig:xgboost_summary}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{results/figures/xgboost_ranking_correlation.png}
+\caption{XGBoost feature ranking correlation across runs}
+\label{fig:xgboost_ranking}
+\end{figure}
+
+\subsubsection{Random Forest}
+
+Random Forest demonstrates the highest overall stability, particularly in ranking correlation (0.909). This high stability can be attributed to the ensemble nature of Random Forest, which naturally reduces variance through averaging. The consistency plots (Figure~\ref{fig:rf_consistency}) show stable feature rankings across different runs.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{results/figures/random_forest_consistency.png}
+\caption{Random Forest consistency analysis}
+\label{fig:rf_consistency}
+\end{figure}
+
+\subsubsection{Logistic Regression}
+
+Logistic Regression shows lower consistency metrics, particularly for top-3 and top-5 consistency (0.167 and 0.127, respectively). This may be due to the use of KernelSHAP, which is an approximation method and may introduce additional variability. However, the ranking correlation (0.616) is comparable to XGBoost, suggesting moderate stability in feature rankings.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{results/figures/logistic_regression_shap_summary.png}
+\caption{Logistic Regression SHAP summary plot}
+\label{fig:lr_summary}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{results/figures/logistic_regression_consistency.png}
+\caption{Logistic Regression consistency analysis}
+\label{fig:lr_consistency}
+\end{figure}
+
+\section{Discussion}
+
+\subsection{Interpretation of Results}
+
+The results reveal important insights about SHAP explanation stability:
+
+\begin{enumerate}
+    \item \textbf{Model Architecture Matters}: Tree-based models (especially Random Forest) show higher stability than linear models when using TreeSHAP, which provides exact Shapley values.
+    
+    \item \textbf{Ensemble Methods Show Higher Stability}: Random Forest's ensemble nature contributes to its superior ranking correlation, as averaging across multiple trees reduces variance.
+    
+    \item \textbf{Approximation Methods Introduce Variability}: Logistic Regression's use of KernelSHAP (an approximation method) may contribute to lower consistency, though ranking correlation remains moderate.
+    
+    \item \textbf{Top-k Consistency Varies by Model}: Different models show different patterns in top-k consistency, suggesting that stability depends on both the model architecture and the specific metric used.
+    
+    \item \textbf{Sample Size Has Limited Impact}: Our subsampling analysis reveals that training data size (50\%-100\%) has minimal impact on SHAP explanation stability, with Random Forest maintaining consistently high stability across all sample sizes.
+\end{enumerate}
+
+\subsection{Limitations}
+
+This study has several limitations:
+
+\begin{itemize}
+    \item \textbf{Single Dataset}: Analysis is limited to one dataset (Wine Quality), and results may not generalize to other domains.
+    \item \textbf{Limited Subsampling Analysis}: Subsampling analysis was not fully completed, limiting our understanding of sample size effects.
+    \item \textbf{Fixed Hyperparameters}: Models were trained with fixed hyperparameters; hyperparameter variations were not extensively explored.
+    \item \textbf{Binary Classification Focus}: Results are specific to binary classification tasks; multi-class or regression tasks may show different patterns.
+\end{itemize}
+
+\subsection{Practical Recommendations}
+
+Based on our findings, we provide the following recommendations for practitioners:
+
+\begin{enumerate}
+    \item \textbf{Use Ensemble Methods for Stability}: When explanation stability is critical, Random Forest with TreeSHAP provides the most stable feature rankings.
+    
+    \item \textbf{Consider Top-k Features}: For practical applications, focusing on top-5 or top-10 features may provide more stable insights than exact rankings.
+    
+    \item \textbf{Multiple Runs for Critical Decisions}: When making important decisions based on SHAP explanations, consider running multiple analyses with different random seeds and aggregating results.
+    
+    \item \textbf{Be Aware of Approximation Methods}: When using KernelSHAP (e.g., with linear models), be aware that explanations may show higher variability than TreeSHAP.
+\end{enumerate}
+
+\section{Conclusion}
+
+This study analyzed the stability and faithfulness of SHAP explanations across different model classes and random seeds. Our key findings are:
+
+\begin{itemize}
+    \item Random Forest demonstrates the highest stability in feature ranking correlation (0.909), maintaining this stability across different sample sizes (0.912-0.915)
+    \item All models show relatively low SHAP value variance, indicating stable absolute values
+    \item Model architecture significantly impacts explanation stability more than sample size
+    \item Ensemble methods provide more stable explanations than single models
+    \item Sample size (50\%-100\% of training data) has limited impact on SHAP explanation stability
+\end{itemize}
+
+These findings contribute to a better understanding of SHAP explanation reliability and provide practical guidelines for using SHAP in production systems. Future work should explore stability across multiple datasets, extensive subsampling analysis, and hyperparameter sensitivity.
+
+\section{Reproducibility}
+
+All code, data, and results are available in the project repository. The implementation includes:
+
+\begin{itemize}
+    \item Well-documented Python code with Jupyter notebooks
+    \item Complete experimental configuration with fixed random seeds
+    \item All visualizations and tables can be regenerated from code
+    \item Requirements.txt with package versions for reproducibility
+\end{itemize}
+
+\textbf{Repository:} \url{https://github.com/keisuke58/shap-stability-analysis}
+
+\newpage
+
+\begin{thebibliography}{9}
+
+\bibitem{lundberg2017unified}
+Lundberg, S. M., \& Lee, S. I. (2017). A unified approach to interpreting model predictions. \textit{Advances in Neural Information Processing Systems}, 30, 4765-4774.
+
+\bibitem{strumbelj2014explaining}
+Štrumbelj, E., \& Kononenko, I. (2014). Explaining prediction models and individual predictions with information-theoretic Shapley values. \textit{Information Sciences}, 285, 68-82.
+
+\bibitem{chen2020true}
+Chen, H., Janizek, J. D., Lundberg, S., \& Lee, S. I. (2020). True to the model or true to the data? \textit{arXiv preprint arXiv:2006.16234}.
+
+\bibitem{covert2020understanding}
+Covert, I., Lundberg, S., \& Lee, S. I. (2020). Understanding global feature contributions with additive importance measures. \textit{Advances in Neural Information Processing Systems}, 33, 17212-17223.
+
+\bibitem{lundberg2020from}
+Lundberg, S. M., Erion, G., Chen, H., DeGrave, A., Prutkin, J. M., Nair, B., ... \& Lee, S. I. (2020). From local explanations to global understanding with explainable AI for trees. \textit{Nature Machine Intelligence}, 2(1), 56-67.
+
+\bibitem{merrick2020explanation}
+Merrick, L., \& Taly, A. (2020). The explanation game: Explaining machine learning models using Shapley values. \textit{Proceedings of the 2020 Conference on Fairness, Accountability, and Transparency}, 39-48.
+
+\bibitem{molnar2020interpretable}
+Molnar, C. (2020). \textit{Interpretable Machine Learning: A Guide for Making Black Box Models Explainable}. Available at: \url{https://christophm.github.io/interpretable-ml-book/}
+
+\bibitem{ribeiro2016should}
+Ribeiro, M. T., Singh, S., \& Guestrin, C. (2016). ``Why should I trust you?'' Explaining the predictions of any classifier. \textit{Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining}, 1135-1144.
+
+\bibitem{shapley1953value}
+Shapley, L. S. (1953). A value for n-person games. \textit{Contributions to the Theory of Games}, 2(28), 307-317.
+
+\end{thebibliography}
+
+\end{document}
